@@ -23,9 +23,9 @@ Verified 2026-09-25 on the hosted build (GitHub Pages + Neon) unless noted.
 - [x] README in the app repo explains `.env` and dummy BVNs
 - [x] 90-second screen recording exists in case the room has no network: [`assets/fasttrack-demo.mp4`](assets/fasttrack-demo.mp4)
 
-Open beyond the MVP: Gemini for non-persona statements needs a key or AI
-Gateway access (see `neon/README.md`), and the APK has not yet been tried on
-a physical phone.
+Beyond the MVP: Gemini reads non-persona SMS live (a new file scored in
+about 3 s on 2026-09-25). Still open: the APK has not been tried on a
+physical phone.
 
 ## Explicitly not done (do not claim)
 

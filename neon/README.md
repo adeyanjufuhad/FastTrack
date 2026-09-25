@@ -79,32 +79,40 @@ curl -s -X POST $F/auth/sign-up -H 'content-type: application/json' \
 psql "$(neon connection-string --database-name fasttrack)" -f seeds/0003_staff.sql   # officer rights
 ```
 
-### Turn on the statement reader (Gemini)
+### The statement reader (Gemini)
 
 The three personas are scored from the extract cache and always work. Any
-other SMS or statement needs Gemini, and without it `/process-application`
+other SMS or statement goes to Gemini. Without it, `/process-application`
 answers **503** ("Statement reader unavailable…").
 
-As of 2026-09-25 the branch's AI Gateway refuses the call with **403**,
-most likely *model requires a verified account* (the function log line
-`gemini unavailable: …` gives the exact reason). Either fix works:
+**Live since 2026-09-25** with a Google AI Studio key in the function's
+environment (`GEMINI_API_KEY`, model `gemini-3.5-flash-lite`). A new SMS
+scored in about 3 s. To set or rotate the key:
 
-1. **Use a Google AI Studio key (free tier available).** Create one at
-   https://aistudio.google.com/apikey, then redeploy with it:
-   ```bash
-   neon functions deploy fasttrack --src functions/fasttrack/index.ts --env GEMINI_API_KEY=your-key
-   ```
-   The key lives only in the function's environment, never in the app.
-2. **Enable the model on Neon's AI Gateway** (verify the account / add
-   credits in the Neon Console). Nothing to redeploy: the function falls
-   back to the gateway whenever `GEMINI_API_KEY` is unset.
+```bash
+neon functions deploy fasttrack --src functions/fasttrack/index.ts \
+  --env GEMINI_API_KEY=your-key --env GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+The key lives only in the function's environment, never in the app or
+this repo. Without a key, the function uses the branch's Neon AI Gateway.
+That route answered 403 for this account (model access), so a key is
+the way in.
+
+Google retires models for new keys (`gemini-2.5-flash` was closed to them)
+and its full flash models often answer 503 "high demand". Each call
+therefore tries `GEMINI_MODEL`, then `GEMINI_FALLBACK_MODELS`, and
+`eligibility_results.model_version` records the model that answered. When
+every model fails, the log line `gemini unavailable: …` lists each
+model's reason.
 
 Optional function settings, passed with `--env KEY=VALUE` on deploy:
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `GEMINI_API_KEY` | unset → AI Gateway | Call Google directly instead of the Neon AI Gateway |
-| `GEMINI_MODEL` | `gemini-2.5-flash` (direct) / `gemini-3-flash` (gateway) | Model for extract + narrative |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` (direct) / `gemini-3-flash` (gateway) | First model tried for extract + narrative |
+| `GEMINI_FALLBACK_MODELS` | `gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-3.8-flash` (direct) | Comma-separated models tried next when one is busy, retired or refused |
 | `ALLOWED_ORIGINS` | unset → `*` | Comma-separated CORS allowlist, e.g. your web app's origin |
 | `LIVE_KYC` | unset | Must stay unset. `true` makes `/kyc-check` refuse (no live provider exists) |
 
