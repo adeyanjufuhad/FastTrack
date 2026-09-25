@@ -647,7 +647,7 @@ deno test supabase/functions/_shared/            # 4 parity tests
 
 | Target | How |
 |---|---|
-| **Website + web app (GitHub Pages)** | Automatic: `.github/workflows/publish.yml` builds the web app against Neon and deploys it with the site to https://adeyanjufuhad.github.io/FastTrack/ on every push to `main` (one-time: Settings → Pages → Source: GitHub Actions) |
+| **Website + web app (GitHub Pages)** | Automatic: `.github/workflows/publish.yml` builds the web app against Neon and deploys it with the site to https://fastrack.name.ng/ on every push to `main` (one-time: Settings → Pages → Source: GitHub Actions) |
 | **Web app (other hosts)** | `flutter build web --release --base-href /app/ --dart-define=NEON_API_URL=…` → copy `app/build/web` to `website/app/` |
 | **Website + web app** | Deploy the `website/` folder to any static host (GitHub Pages, Vercel, Netlify, Firebase Hosting). Applicant flow at `/app/`, officer at `/app/#/officer/login` |
 | **Android** | Actions → **Publish** → Run workflow with a tag (e.g. `v0.2.0`): builds `fasttrack.apk` against Neon and attaches it to that release. By hand: `flutter build apk --release --dart-define=NEON_API_URL=…`. Debug-signed: fine for sideloading onto demo phones, not for the Play Store |
@@ -710,7 +710,7 @@ flowchart LR
 | Supabase schema, RLS, Edge Functions | 🟡 Implemented and type-checked; **not yet run against a live project** |
 | Neon backend (Postgres, Auth, Storage, function) | ✅ Deployed; the full applicant → officer → A10 walk passed in a browser on the hosted app |
 | Statement reader for non-persona files (Gemini) | ✅ Live with a Google AI Studio key; falls back across models when one is busy — see [`neon/README.md`](neon/README.md#the-statement-reader-gemini) |
-| Hosted website + web app | ✅ [Website](https://adeyanjufuhad.github.io/FastTrack/) · [live app](https://adeyanjufuhad.github.io/FastTrack/app/) · [offline demo](https://adeyanjufuhad.github.io/FastTrack/demo/) on GitHub Pages |
+| Hosted website + web app | ✅ [Website](https://fastrack.name.ng/) · [live app](https://fastrack.name.ng/app/) · [offline demo](https://fastrack.name.ng/demo/) on GitHub Pages (custom domain) |
 | 90-second backup recording | ✅ [`docs/assets/fasttrack-demo.mp4`](docs/assets/fasttrack-demo.mp4) — copy it to the pitch laptop |
 | iOS store build | ⏳ Not in v1 |
 
