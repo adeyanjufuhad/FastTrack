@@ -10,16 +10,22 @@
 
 ## The MVP is done when
 
-- [ ] Hosted Flutter web link works without a local machine
-- [ ] Adaeze, Ibrahim, Northshore appear in the officer queue after seed
-- [ ] Adaeze walk A2→A9 < 5 minutes
-- [ ] A9 amount === O2 amount
-- [ ] Amber sandbox chip visible on A5 and A9
-- [ ] Disclaimer visible on A9 and O2
-- [ ] Officer can approve / more_info / decline; A10 updates
-- [ ] Gemini cache protects the three personas from quota
-- [ ] README in the app repo explains `.env` and dummy BVNs
-- [ ] 90-second screen recording exists in case the room has no network
+Verified 2026-09-25 on the hosted build (GitHub Pages + Neon) unless noted.
+
+- [x] Hosted Flutter web link works without a local machine: https://adeyanjufuhad.github.io/FastTrack/app/ (live) and `/demo/` (offline)
+- [x] Adaeze, Ibrahim, Northshore appear in the officer queue after seed: NGN 1,240,000 · 410,000 · 3,780,000
+- [x] Adaeze walk A2→A9 < 5 minutes: about 80 s scripted in a browser
+- [x] A9 amount === O2 amount: both NGN 1,240,000
+- [x] Amber sandbox chip visible on A5 and A9
+- [x] Disclaimer visible on A9 and O2
+- [x] Officer can approve / more_info / decline; A10 updates: approve walked in the browser, A10 showed Approved; decline via the API
+- [x] Gemini cache protects the three personas from quota: they score from the extract cache (`model_version = fixture-cache`)
+- [x] README in the app repo explains `.env` and dummy BVNs
+- [x] 90-second screen recording exists in case the room has no network: [`assets/fasttrack-demo.mp4`](assets/fasttrack-demo.mp4)
+
+Open beyond the MVP: Gemini for non-persona statements needs a key or AI
+Gateway access (see `neon/README.md`), and the APK has not yet been tried on
+a physical phone.
 
 ## Explicitly not done (do not claim)
 
