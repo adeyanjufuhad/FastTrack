@@ -1,0 +1,344 @@
+import 'dart:typed_data';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../models/enums.dart';
+import '../models/extract.dart';
+import '../models/records.dart';
+import 'repository.dart';
+
+/// Real backend: Supabase Auth + Postgres (RLS) + Storage + Edge Functions.
+/// Only the anon key ever reaches this class. Never the service role.
+class SupabaseRepository implements FastTrackRepository {
+  SupabaseRepository(this._sb);
+
+  final SupabaseClient _sb;
+  static const _bucket = 'documents';
+
+  /// A4 form keys that are real `applicants` columns. Anything else (e.g.
+  /// signatory BVNs) stays on the device and is never persisted.
+  static const _columns = [
+    'email', 'phone', 'dob', 'address', 'occupation', 'next_of_kin_name',
+    'next_of_kin_phone', 'rc_number', 'nature_of_business',
+    'registered_address', 'signatory_1_name', 'signatory_2_name',
+  ];
+
+  @override
+  bool get isDemo => false;
+
+  @override
+  SessionUser? get currentUser {
+    final u = _sb.auth.currentUser;
+    if (u == null) return null;
+    return SessionUser(
+      id: u.id,
+      email: u.email ?? '',
+      isOfficer: u.appMetadata['role'] == 'officer',
+    );
+  }
+
+  String get _uid => _sb.auth.currentUser?.id ?? (throw const AuthFailure('Please sign in.'));
+
+  // ── Auth ──────────────────────────────────────────────────────────────
+
+  @override
+  Future<SessionUser> signUp(String email, String password) async {
+    try {
+      final res = await _sb.auth.signUp(email: email.trim(), password: password);
+      if (res.session == null) {
+        throw const AuthFailure('Check your inbox to confirm your email, then sign in.');
+      }
+      return currentUser!;
+    } on AuthException catch (e) {
+      throw AuthFailure(e.message);
+    }
+  }
+
+  @override
+  Future<SessionUser> signIn(String email, String password) async {
+    try {
+      await _sb.auth.signInWithPassword(email: email.trim(), password: password);
+      return currentUser!;
+    } on AuthException catch (e) {
+      throw AuthFailure(e.message);
+    }
+  }
+
+  @override
+  Future<void> signOut() => _sb.auth.signOut();
+
+  // ── Applicant ─────────────────────────────────────────────────────────
+
+  ApplicantProfile _profileFrom(Map<String, dynamic> row) {
+    final role = ApplicantRole.fromWire(row['role'] as String?);
+    final fields = <String, String>{
+      for (final c in _columns)
+        if (row[c] != null) c: '${row[c]}',
+    };
+    final name = row['legal_name'] as String?;
+    if (name != null) {
+      fields[role == ApplicantRole.corporate ? 'registered_name' : 'legal_name'] = name;
+    }
+    return ApplicantProfile(
+      id: row['id'] as String,
+      role: role,
+      fields: fields,
+      bvnMasked: row['bvn_masked'] as String?,
+      ninMasked: row['nin_masked'] as String?,
+      kycResult: KycResult.fromWire(row['kyc_result'] as String?),
+      holdingsNgn: (row['holdings_ngn'] as num?)?.toInt(),
+    );
+  }
+
+  @override
+  Future<ApplicantProfile> loadProfile() async {
+    final row = await _sb.from('applicants').select().eq('id', _uid).maybeSingle();
+    if (row != null) return _profileFrom(row);
+    final p = ApplicantProfile(id: _uid, fields: {'email': _sb.auth.currentUser?.email ?? ''});
+    await saveProfile(p);
+    return p;
+  }
+
+  @override
+  Future<void> saveProfile(ApplicantProfile p) async {
+    final name = p.role == ApplicantRole.corporate
+        ? p.fields['registered_name']
+        : p.fields['legal_name'];
+    await _sb.from('applicants').upsert({
+      'id': p.id,
+      'role': p.role.wire,
+      'legal_name': name,
+      for (final c in _columns) c: _clean(p.fields[c]),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
+  }
+
+  static String? _clean(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
+
+  Application _applicationFrom(Map<String, dynamic> r) => Application(
+    id: r['id'] as String,
+    applicantId: r['applicant_id'] as String,
+    requestedAmount: (r['requested_amount'] as num?)?.toInt(),
+    tenorMonths: (r['tenor_months'] as num?)?.toInt() ?? 12,
+    purpose: r['purpose'] as String?,
+    smsText: r['sms_text'] as String?,
+    status: ApplicationStatus.fromWire(r['status'] as String?),
+    createdAt: DateTime.tryParse('${r['created_at']}')?.toLocal(),
+    decidedAt: DateTime.tryParse('${r['decided_at']}')?.toLocal(),
+  );
+
+  @override
+  Future<Application> loadOrCreateApplication() async {
+    final row = await _sb
+        .from('applications')
+        .select()
+        .eq('applicant_id', _uid)
+        .order('created_at')
+        .limit(1)
+        .maybeSingle();
+    if (row != null) return _applicationFrom(row);
+    final created = await _sb
+        .from('applications')
+        .insert({'applicant_id': _uid})
+        .select()
+        .single();
+    return _applicationFrom(created);
+  }
+
+  @override
+  Future<void> saveApplication(Application a) async {
+    await _sb.from('applications').update({
+      'requested_amount': a.requestedAmount,
+      'tenor_months': a.tenorMonths,
+      'purpose': a.purpose,
+      'sms_text': a.smsText,
+      'status': a.status.wire,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', a.id);
+  }
+
+  @override
+  Future<KycResult> kycCheck({String? bvn, String? nin, required String legalName}) async {
+    try {
+      final res = await _sb.functions.invoke('kyc-check', body: {
+        'bvn': ?bvn,
+        'nin': ?nin,
+        'legal_name': legalName,
+      });
+      final data = Map<String, dynamic>.from(res.data as Map);
+      return KycResult.fromWire(data['result'] as String?) ?? KycResult.mismatch;
+    } on FunctionException catch (e) {
+      throw ProcessFailure(e.status, 'Identity check is unavailable. Try again.');
+    }
+  }
+
+  @override
+  Future<DocumentRecord> uploadDocument({
+    required DocKind kind,
+    required String name,
+    required String mime,
+    required Uint8List data,
+  }) async {
+    final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final path = '$_uid/${kind.wire}-${DateTime.now().millisecondsSinceEpoch}-$safe';
+    await _sb.storage.from(_bucket).uploadBinary(
+      path,
+      data,
+      fileOptions: FileOptions(contentType: mime, upsert: true),
+    );
+    final row = await _sb
+        .from('documents')
+        .insert({
+          'applicant_id': _uid,
+          'kind': kind.wire,
+          'storage_path': path,
+          'mime': mime,
+          'bytes': data.length,
+        })
+        .select()
+        .single();
+    return DocumentRecord(
+      id: row['id'] as String,
+      kind: kind,
+      name: name,
+      mime: mime,
+      bytes: data.length,
+      storagePath: path,
+      data: data,
+    );
+  }
+
+  DocumentRecord _docFrom(Map<String, dynamic> r) {
+    final path = r['storage_path'] as String;
+    return DocumentRecord(
+      id: r['id'] as String,
+      kind: DocKind.fromWire(r['kind'] as String?),
+      name: path.split('/').last,
+      mime: r['mime'] as String? ?? 'application/octet-stream',
+      bytes: (r['bytes'] as num?)?.toInt() ?? 0,
+      storagePath: path,
+    );
+  }
+
+  @override
+  Future<List<DocumentRecord>> myDocuments() async {
+    final rows = await _sb.from('documents').select().eq('applicant_id', _uid);
+    return [for (final r in rows) _docFrom(r)];
+  }
+
+  @override
+  Future<Eligibility> processApplication(String applicationId, {String? fixtureKey}) async {
+    try {
+      await _sb.functions.invoke('process-application', body: {
+        'application_id': applicationId,
+        'fixture_key': ?fixtureKey,
+      });
+    } on FunctionException catch (e) {
+      final detail = e.details is Map ? (e.details as Map)['error'] as String? : null;
+      throw ProcessFailure(e.status, switch (e.status) {
+        409 => 'We need to confirm your identity before we can show an amount.',
+        422 => 'We could not read this file. Try SMS paste or a clearer PDF.',
+        503 => 'Our statement reader is busy. Please retry in a moment.',
+        _ => detail ?? 'Something went wrong while scoring. Please retry.',
+      });
+    } catch (_) {
+      throw const ProcessFailure(0, 'Network problem. Check your connection and retry.');
+    }
+    final r = await latestEligibility(applicationId);
+    if (r == null) throw const ProcessFailure(500, 'Scoring pending or failed.');
+    return r;
+  }
+
+  Eligibility _eligibilityFrom(Map<String, dynamic> r) => Eligibility(
+    applicationId: r['application_id'] as String,
+    amount: (r['amount_prequalified'] as num?)?.toInt(),
+    tier: Tier.fromWire(r['tier'] as String?),
+    warnings: [for (final w in (r['warnings'] as List? ?? const [])) '$w'],
+    narrative: r['narrative'] as String?,
+    extract: r['extract'] == null
+        ? null
+        : Extract.fromJson(Map<String, dynamic>.from(r['extract'] as Map)),
+    modelVersion: r['model_version'] as String?,
+    createdAt: DateTime.tryParse('${r['created_at']}')?.toLocal() ?? DateTime.now(),
+  );
+
+  @override
+  Future<Eligibility?> latestEligibility(String applicationId) async {
+    final row = await _sb
+        .from('eligibility_results')
+        .select()
+        .eq('application_id', applicationId)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return row == null ? null : _eligibilityFrom(row);
+  }
+
+  // ── Officer ───────────────────────────────────────────────────────────
+
+  static const _fileSelect =
+      '*, applicants(*), eligibility_results(*), officer_notes(*)';
+
+  ApplicationFile _fileFrom(Map<String, dynamic> r, {List<DocumentRecord> docs = const []}) {
+    final results = [
+      for (final e in (r['eligibility_results'] as List? ?? const []))
+        _eligibilityFrom(Map<String, dynamic>.from(e as Map)),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final notes = [
+      for (final n in (r['officer_notes'] as List? ?? const []))
+        OfficerNote(
+          body: '${n['body']}',
+          createdAt: DateTime.tryParse('${n['created_at']}')?.toLocal() ?? DateTime.now(),
+        ),
+    ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return ApplicationFile(
+      applicant: _profileFrom(Map<String, dynamic>.from(r['applicants'] as Map)),
+      application: _applicationFrom(r),
+      eligibility: results.isEmpty ? null : results.first,
+      documents: docs,
+      notes: notes,
+    );
+  }
+
+  @override
+  Future<List<ApplicationFile>> queue() async {
+    final rows = await _sb
+        .from('applications')
+        .select(_fileSelect)
+        .neq('status', 'draft')
+        .order('created_at', ascending: false);
+    return [for (final r in rows) _fileFrom(r)];
+  }
+
+  @override
+  Future<ApplicationFile?> file(String applicationId) async {
+    final r = await _sb.from('applications').select(_fileSelect).eq('id', applicationId).maybeSingle();
+    if (r == null) return null;
+    final docs = await _sb.from('documents').select().eq('applicant_id', r['applicant_id'] as String);
+    return _fileFrom(r, docs: [for (final d in docs) _docFrom(d)]);
+  }
+
+  @override
+  Future<void> addNote(String applicationId, String body) async {
+    await _sb.from('officer_notes').insert({
+      'application_id': applicationId,
+      'officer_id': _uid,
+      'body': body,
+    });
+  }
+
+  @override
+  Future<void> decide(String applicationId, ApplicationStatus status) async {
+    final open = status == ApplicationStatus.inReview;
+    await _sb.from('applications').update({
+      'status': status.wire,
+      'officer_id': _uid,
+      'decided_at': open ? null : DateTime.now().toUtc().toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', applicationId);
+  }
+
+  @override
+  Future<String?> signedUrl(DocumentRecord doc) =>
+      _sb.storage.from(_bucket).createSignedUrl(doc.storagePath, 600);
+}

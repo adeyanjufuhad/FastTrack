@@ -1,0 +1,24 @@
+name: fasttrack
+description: "FastTrack — digital onboarding and instant loan pre-qualification. Applicant app + officer dashboard."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  file_picker: ^13.1.0
+  flutter:
+    sdk: flutter
+  go_router: ^18.0.1
+  google_fonts: ^8.2.1
+  supabase_flutter: ^2.17.2
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Replaced by `flutter build web --base-href`. Must start and end with "/". -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FastTrack — digital onboarding and instant loan pre-qualification. A human still approves.">
+  <meta name="theme-color" content="#0A2463">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FastTrack">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>FastTrack</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; height: 100%; background: #FFFFFF; }
+    /* Branded loading state until Flutter paints its first frame. */
+    #ft-loading {
+      position: fixed; inset: 0; display: grid; place-items: center;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0A2463;
+    }
+    #ft-loading svg { width: 56px; height: 56px; animation: ft-pulse 1.2s ease-in-out infinite; }
+    #ft-loading p { margin: 14px 0 0; font-size: 14px; color: #64748B; text-align: center; }
+    @keyframes ft-pulse { 50% { opacity: .45; } }
+  </style>
+</head>
+<body>
+  <div id="ft-loading" aria-live="polite">
+    <div>
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M9 30 L23 15 L56 15" fill="none" stroke="#2B76E5" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 54 L23 39 L43 39" fill="none" stroke="#0A2463" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p>Loading FastTrack…</p>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('ft-loading');
+      if (el) el.remove();
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
