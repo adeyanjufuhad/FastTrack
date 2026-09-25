@@ -1,0 +1,67 @@
+name: Deploy function
+
+# Deploys the `fasttrack` Neon Function whenever neon/ changes on main, and
+# on demand (Actions → Deploy function → Run workflow). Tests run first; a
+# red test never reaches the live function.
+#
+# Needs the repository secret NEON_API_KEY (a Neon API key). Environment
+# variables already set on the function (GEMINI_API_KEY, GEMINI_MODEL, …)
+# carry over: a deploy without --env leaves them as they are.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - neon/functions/**
+      - neon/package.json
+      - neon/package-lock.json
+      - .github/workflows/deploy-function.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-function
+  cancel-in-progress: false
+
+env:
+  NEON_PROJECT_ID: hidden-dream-89003932
+  NEON_BRANCH: main
+
+jobs:
+  deploy:
+    name: Test and deploy fasttrack
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: neon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: neon/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Deploy
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "::error::Add the NEON_API_KEY repository secret (a Neon API key) to deploy."
+            exit 1
+          fi
+          npx --yes neon@6 functions deploy fasttrack \
+            --src functions/fasttrack/index.ts \
+            --project-id "$NEON_PROJECT_ID" --branch "$NEON_BRANCH"
+      - name: Smoke test
+        run: |
+          url="https://br-little-hat-b492f9op-fasttrack.compute.c-6.us-east-2.aws.neon.tech/health"
+          for i in 1 2 3 4 5; do
+            if curl -fsS "$url" | grep -q '"ok":true'; then echo "healthy"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::$url did not answer ok after the deploy"; exit 1
