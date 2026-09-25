@@ -1,0 +1,8 @@
+# Minimal Supabase CLI config. `supabase link` fills in the rest.
+project_id = "fasttrack"
+
+[functions.kyc-check]
+verify_jwt = true
+
+[functions.process-application]
+verify_jwt = true
