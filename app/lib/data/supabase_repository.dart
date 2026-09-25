@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/enums.dart';
-import '../models/extract.dart';
 import '../models/records.dart';
 import 'repository.dart';
+import 'rows.dart';
 
 /// Real backend: Supabase Auth + Postgres (RLS) + Storage + Edge Functions.
 /// Only the anon key ever reaches this class. Never the service role.
@@ -14,14 +14,6 @@ class SupabaseRepository implements FastTrackRepository {
 
   final SupabaseClient _sb;
   static const _bucket = 'documents';
-
-  /// A4 form keys that are real `applicants` columns. Anything else (e.g.
-  /// signatory BVNs) stays on the device and is never persisted.
-  static const _columns = [
-    'email', 'phone', 'dob', 'address', 'occupation', 'next_of_kin_name',
-    'next_of_kin_phone', 'rc_number', 'nature_of_business',
-    'registered_address', 'signatory_1_name', 'signatory_2_name',
-  ];
 
   @override
   bool get isDemo => false;
@@ -69,31 +61,10 @@ class SupabaseRepository implements FastTrackRepository {
 
   // ── Applicant ─────────────────────────────────────────────────────────
 
-  ApplicantProfile _profileFrom(Map<String, dynamic> row) {
-    final role = ApplicantRole.fromWire(row['role'] as String?);
-    final fields = <String, String>{
-      for (final c in _columns)
-        if (row[c] != null) c: '${row[c]}',
-    };
-    final name = row['legal_name'] as String?;
-    if (name != null) {
-      fields[role == ApplicantRole.corporate ? 'registered_name' : 'legal_name'] = name;
-    }
-    return ApplicantProfile(
-      id: row['id'] as String,
-      role: role,
-      fields: fields,
-      bvnMasked: row['bvn_masked'] as String?,
-      ninMasked: row['nin_masked'] as String?,
-      kycResult: KycResult.fromWire(row['kyc_result'] as String?),
-      holdingsNgn: (row['holdings_ngn'] as num?)?.toInt(),
-    );
-  }
-
   @override
   Future<ApplicantProfile> loadProfile() async {
     final row = await _sb.from('applicants').select().eq('id', _uid).maybeSingle();
-    if (row != null) return _profileFrom(row);
+    if (row != null) return profileFromRow(row);
     final p = ApplicantProfile(id: _uid, fields: {'email': _sb.auth.currentUser?.email ?? ''});
     await saveProfile(p);
     return p;
@@ -101,31 +72,12 @@ class SupabaseRepository implements FastTrackRepository {
 
   @override
   Future<void> saveProfile(ApplicantProfile p) async {
-    final name = p.role == ApplicantRole.corporate
-        ? p.fields['registered_name']
-        : p.fields['legal_name'];
     await _sb.from('applicants').upsert({
       'id': p.id,
-      'role': p.role.wire,
-      'legal_name': name,
-      for (final c in _columns) c: _clean(p.fields[c]),
+      ...profileToRow(p),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     });
   }
-
-  static String? _clean(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
-
-  Application _applicationFrom(Map<String, dynamic> r) => Application(
-    id: r['id'] as String,
-    applicantId: r['applicant_id'] as String,
-    requestedAmount: (r['requested_amount'] as num?)?.toInt(),
-    tenorMonths: (r['tenor_months'] as num?)?.toInt() ?? 12,
-    purpose: r['purpose'] as String?,
-    smsText: r['sms_text'] as String?,
-    status: ApplicationStatus.fromWire(r['status'] as String?),
-    createdAt: DateTime.tryParse('${r['created_at']}')?.toLocal(),
-    decidedAt: DateTime.tryParse('${r['decided_at']}')?.toLocal(),
-  );
 
   @override
   Future<Application> loadOrCreateApplication() async {
@@ -136,13 +88,13 @@ class SupabaseRepository implements FastTrackRepository {
         .order('created_at')
         .limit(1)
         .maybeSingle();
-    if (row != null) return _applicationFrom(row);
+    if (row != null) return applicationFromRow(row);
     final created = await _sb
         .from('applications')
         .insert({'applicant_id': _uid})
         .select()
         .single();
-    return _applicationFrom(created);
+    return applicationFromRow(created);
   }
 
   @override
@@ -249,19 +201,6 @@ class SupabaseRepository implements FastTrackRepository {
     return r;
   }
 
-  Eligibility _eligibilityFrom(Map<String, dynamic> r) => Eligibility(
-    applicationId: r['application_id'] as String,
-    amount: (r['amount_prequalified'] as num?)?.toInt(),
-    tier: Tier.fromWire(r['tier'] as String?),
-    warnings: [for (final w in (r['warnings'] as List? ?? const [])) '$w'],
-    narrative: r['narrative'] as String?,
-    extract: r['extract'] == null
-        ? null
-        : Extract.fromJson(Map<String, dynamic>.from(r['extract'] as Map)),
-    modelVersion: r['model_version'] as String?,
-    createdAt: DateTime.tryParse('${r['created_at']}')?.toLocal() ?? DateTime.now(),
-  );
-
   @override
   Future<Eligibility?> latestEligibility(String applicationId) async {
     final row = await _sb
@@ -271,7 +210,7 @@ class SupabaseRepository implements FastTrackRepository {
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    return row == null ? null : _eligibilityFrom(row);
+    return row == null ? null : eligibilityFromRow(row);
   }
 
   // ── Officer ───────────────────────────────────────────────────────────
@@ -282,7 +221,7 @@ class SupabaseRepository implements FastTrackRepository {
   ApplicationFile _fileFrom(Map<String, dynamic> r, {List<DocumentRecord> docs = const []}) {
     final results = [
       for (final e in (r['eligibility_results'] as List? ?? const []))
-        _eligibilityFrom(Map<String, dynamic>.from(e as Map)),
+        eligibilityFromRow(Map<String, dynamic>.from(e as Map)),
     ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final notes = [
       for (final n in (r['officer_notes'] as List? ?? const []))
@@ -292,8 +231,8 @@ class SupabaseRepository implements FastTrackRepository {
         ),
     ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return ApplicationFile(
-      applicant: _profileFrom(Map<String, dynamic>.from(r['applicants'] as Map)),
-      application: _applicationFrom(r),
+      applicant: profileFromRow(Map<String, dynamic>.from(r['applicants'] as Map)),
+      application: applicationFromRow(r),
       eligibility: results.isEmpty ? null : results.first,
       documents: docs,
       notes: notes,

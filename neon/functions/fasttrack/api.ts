@@ -409,7 +409,8 @@ export function createHandler(deps: Deps) {
       if (m === "PUT") {
         const b = await readJson(req);
         const role = typeof b.role === "string" && ROLES.includes(b.role) ? b.role : "individual";
-        const values = DETAIL_COLUMNS.map((k) => clean(b[k]));
+        // A missing email falls back to the sign-in email instead of wiping it.
+        const values = DETAIL_COLUMNS.map((k) => (k === "email" ? clean(b.email) ?? (c.email || null) : clean(b[k])));
         const cols = DETAIL_COLUMNS.join(", ");
         const params = DETAIL_COLUMNS.map((_, i) => `$${i + 4}`).join(", ");
         const sets = DETAIL_COLUMNS.map((k) => `${k} = excluded.${k}`).join(", ");

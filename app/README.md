@@ -11,13 +11,19 @@ flutter pub get
 # Offline demo mode — no backend, seed personas, sandbox KYC
 flutter run -d chrome
 
+# Against the Neon backend (the fasttrack function's URL — no keys in the app)
+flutter run -d chrome \
+  --dart-define=NEON_API_URL=https://br-little-hat-b492f9op-fasttrack.compute.c-6.us-east-2.aws.neon.tech
+
 # Against Supabase (anon / publishable key only — never the service role)
 flutter run -d chrome \
   --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
   --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Without `SUPABASE_URL` the app uses `DemoRepository`: it runs fully offline
+`NEON_API_URL` selects `NeonRepository` (see `../neon/README.md`); it keeps
+the sign-in session on the device and refreshes its 15-minute token itself.
+With neither `NEON_API_URL` nor `SUPABASE_URL` the app uses `DemoRepository`: it runs fully offline
 with Adaeze, Ibrahim and Northshore already in the officer queue. Demo state
 is saved on the device (browser localStorage on web), so a refresh mid-pitch
 loses nothing. **Reset demo** (under the splash buttons, or ↺ on the officer
@@ -43,6 +49,7 @@ flutter test
 
 - `score_engine_test.dart` — locks the Adaeze / Ibrahim / Northshore vectors and the rules.
 - `demo_repository_test.dart` — demo state survives a reload; reset; hashed passwords.
+- `neon_repository_test.dart` — Neon client: token refresh and retry, session restore, error mapping, uploads, officer files.
 - `layout_test.dart` — every screen at 360×740, 768×1024 and 1366×768 with no
   overflow (cut-off content fails the test), plus A9 amount === O2 amount.
 
@@ -60,7 +67,7 @@ lib/
 ├── main.dart, app.dart        # bootstrap + go_router with role guards
 ├── config/env.dart            # --dart-define values, LIVE_KYC guard
 ├── scoring/                   # PURE DART — rules engine, config, narrative template
-├── data/                      # repository interface, demo + Supabase implementations
+├── data/                      # repository interface; demo, Supabase and Neon implementations
 ├── models/                    # enums mirror Postgres; records
 ├── state/                     # AppState (ChangeNotifier) + AppScope
 ├── theme/                     # blue & white tokens, fluid() sizing
