@@ -21,3 +21,6 @@ Thumbs.db
 # Node / Deno caches
 node_modules/
 .deno/
+
+# Kotlin compiler session files from Android builds
+app/android/.kotlin/
