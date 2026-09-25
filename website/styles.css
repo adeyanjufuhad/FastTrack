@@ -70,7 +70,6 @@ code { font-size: .92em; background: var(--sky); color: var(--navy); padding: .1
   font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
   color: var(--blue-deep); margin-bottom: 1rem;
 }
-.eyebrow .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 4px rgba(43,118,229,.18); }
 .eyebrow--light { color: var(--blue-light); }
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
