@@ -1,0 +1,25 @@
+{
+  "name": "fasttrack-neon",
+  "private": true,
+  "type": "module",
+  "description": "FastTrack backend on Neon: Postgres schema + seeds and the `fasttrack` Neon Function.",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --test 'functions/**/*.test.ts'",
+    "bundle": "node scripts/bundle.mjs",
+    "migrate": "node scripts/migrate.mjs"
+  },
+  "dependencies": {
+    "aws4fetch": "^1.0.20",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "esbuild": "^0.25.9",
+    "typescript": "^5.9.2"
+  }
+}

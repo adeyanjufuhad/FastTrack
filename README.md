@@ -84,6 +84,7 @@ FastTrack is **the front door and the first read** — not a bank, not a credit 
 |---|---|---|---|
 | **App** | [`app/`](app/) | Flutter 3.44 · Dart 3.12 | Applicant flow A1–A10 and officer dashboard O1–O3; offline demo mode and Supabase mode |
 | **Backend** | [`supabase/`](supabase/) | Postgres · Row Level Security · Storage · Deno Edge Functions | Data, access control, file vault, KYC sandbox, extract → score → narrative orchestrator |
+| **Backend (Neon)** | [`neon/`](neon/) | Neon Postgres · Neon Auth · Object Storage · one Neon Function (Node 24) | The same backend on Neon: schema + seeds, and a single `fasttrack` HTTP API that enforces the access rules itself. The app does not call it yet — see [`neon/README.md`](neon/README.md) |
 | **Website** | [`website/`](website/) | HTML · CSS · vanilla JS | Blue-and-white download / marketing site |
 | **Product docs** | [`docs/`](docs/) | Markdown | PRD, screens, scoring rules, Gemini contracts, security, sprint plan, pitch run-sheet |
 | **Fixtures** | [`fixtures/`](fixtures/) | Text · JSON | Seed personas, sample bank-alert SMS, locked expected scores |
@@ -645,6 +646,7 @@ deno test supabase/functions/_shared/            # 4 parity tests
 | **Website + web app** | Deploy the `website/` folder to any static host (GitHub Pages, Vercel, Netlify, Firebase Hosting). Applicant flow at `/app/`, officer at `/app/#/officer/login` |
 | **Android** | `flutter build apk --release` → attach as `fasttrack.apk` to a GitHub Release ([v0.1.0](https://github.com/adeyanjufuhad/FastTrack/releases/tag/v0.1.0) is live). Currently debug-signed: fine for sideloading onto demo phones, not for the Play Store |
 | **Backend** | Supabase migrations + `supabase functions deploy` (see §15.3) |
+| **Backend (Neon)** | `npm run migrate` + `neon functions deploy fasttrack --src functions/fasttrack/index.ts`, from `neon/` (see [`neon/README.md`](neon/README.md)) |
 
 ---
 
@@ -720,7 +722,7 @@ Loan against portfolio as a first-class product · bureau pull behind the same i
 FastTrack/
 ├── README.md                  ← you are here
 ├── .env.example               # shape of local config (never commit .env)
-├── .github/workflows/ci.yml   # analyze + test app, check + test functions
+├── .github/workflows/ci.yml   # analyze + test app, check + test Edge and Neon functions
 ├── api/openapi.yaml           # Edge Function HTTP contract
 ├── app/                       # Flutter app (applicant + officer)
 │   ├── lib/                   #   see §6.2
@@ -732,6 +734,10 @@ FastTrack/
 │   ├── functions/             # kyc-check, process-application, _shared/
 │   ├── seed.sql               # sandbox identities + cached extracts
 │   └── seed_personas.sql      # persona files for the officer queue
+├── neon/                      # the same backend on Neon (see neon/README.md)
+│   ├── migrations/ seeds/     #   schema, sandbox identities, personas, demo officer
+│   ├── functions/fasttrack/   #   the one Neon Function: auth, API, storage
+│   └── functions/_shared/     #   rules engine + Gemini (ported from supabase/)
 ├── website/                   # static download site (+ app/ when deployed)
 ├── docs/                      # PRD, screens, scoring, Gemini, security, run-sheet, design tokens
 ├── fixtures/                  # personas, sample SMS, expected scores
