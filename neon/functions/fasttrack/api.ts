@@ -10,7 +10,7 @@
 //
 // Errors follow docs/api-contracts.md:
 //   401 no/expired JWT · 403 not owner/officer · 409 KYC mismatch ·
-//   422 unreadable · 503 Gemini down and no cache
+//   422 unreadable · 423 already with a specialist · 503 Gemini down and no cache
 
 import { createHash } from "node:crypto";
 
@@ -47,6 +47,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DOC_KINDS = ["id", "statement", "cac", "signature", "other"];
 const ROLES = ["individual", "corporate"];
 const OFFICER_STATUSES = ["in_review", "more_info", "approved", "declined"];
+const LOCKED_STATUSES = ["in_review", "approved", "declined"];
 
 /** A4 form keys that are real `applicants` columns (see SupabaseRepository._columns). */
 const DETAIL_COLUMNS = [
@@ -236,6 +237,11 @@ export function createHandler(deps: Deps) {
     const b = await readJson(req);
     if (typeof b.application_id !== "string") throw new HttpError(400, "application_id is required.");
     const app = await applicationFor(c, b.application_id);
+    // Once a specialist has the file its score is frozen: re-running would
+    // overwrite their decision with a fresh "scored" status.
+    if (LOCKED_STATUSES.includes(String(app.status))) {
+      throw new HttpError(423, "This file is already with a specialist.");
+    }
     const applicant = await one<{ role: "individual" | "corporate"; kyc_result: KycResult | null; holdings_ngn: number | null }>(
       "select role, kyc_result, holdings_ngn from public.applicants where id = $1",
       [app.applicant_id],

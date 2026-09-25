@@ -166,6 +166,15 @@ test("process-application: cached fixture → rules amount, template narrative, 
   strictEqual((await call("POST", "/process-application", BOB, { application_id: APP })).status, 403);
 });
 
+test("a file with a specialist cannot be re-scored (would overwrite the decision)", async () => {
+  for (const status of ["in_review", "approved", "declined"]) {
+    const { call, log } = setup([[/select \* from public\.applications where id = \$1/, () => [{ ...aliceApp, status }]]]);
+    const r = await call("POST", "/process-application", ALICE, { application_id: APP, fixture_key: "fixture:adaeze-sms" });
+    strictEqual(r.status, 423, status);
+    ok(!log.some((l) => /update public\.applications set status|insert into public\.eligibility_results/.test(l.sql)));
+  }
+});
+
 test("process-application without a statement or SMS → 422 and more_info", async () => {
   const { call, log } = setup([
     appRule,
