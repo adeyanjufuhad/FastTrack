@@ -90,6 +90,8 @@ test("applicants cannot self-approve or set server-managed fields", async () => 
   const upsert = log.find((l) => /insert into public\.applicants \(id, role/.test(l.sql))!;
   ok(!/kyc_result|holdings_ngn|bvn_masked/.test(upsert.sql));
   ok(!upsert.params.includes("sandbox_pass"));
+  // No email in the body keeps the sign-in email rather than clearing it.
+  ok(upsert.params.includes(`${ALICE.slice(0, 4)}@x.io`));
 });
 
 test("KYC sandbox stores only masked numbers", async () => {

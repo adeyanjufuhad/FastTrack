@@ -2,8 +2,12 @@
 
 The FastTrack backend on [Neon](https://neon.com): the same data, rules and API behaviour as [`../supabase/`](../supabase/), built on Neon Postgres, Neon Auth (Managed Better Auth), Neon Object Storage and **one** Neon Function.
 
-> [!NOTE]
-> The Flutter app still talks to Supabase (`SupabaseRepository`). The next step is a `NeonRepository` that calls the API below. The interface it has to implement is [`app/lib/data/repository.dart`](../app/lib/data/repository.dart).
+The Flutter app talks to it through [`NeonRepository`](../app/lib/data/neon_repository.dart) when built with the function's URL:
+
+```bash
+cd app
+flutter run -d chrome --dart-define=NEON_API_URL=https://br-little-hat-b492f9op-fasttrack.compute.c-6.us-east-2.aws.neon.tech
+```
 
 ## What runs where
 

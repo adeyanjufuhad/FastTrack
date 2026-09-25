@@ -84,7 +84,7 @@ FastTrack is **the front door and the first read** — not a bank, not a credit 
 |---|---|---|---|
 | **App** | [`app/`](app/) | Flutter 3.44 · Dart 3.12 | Applicant flow A1–A10 and officer dashboard O1–O3; offline demo mode and Supabase mode |
 | **Backend** | [`supabase/`](supabase/) | Postgres · Row Level Security · Storage · Deno Edge Functions | Data, access control, file vault, KYC sandbox, extract → score → narrative orchestrator |
-| **Backend (Neon)** | [`neon/`](neon/) | Neon Postgres · Neon Auth · Object Storage · one Neon Function (Node 24) | The same backend on Neon: schema + seeds, and a single `fasttrack` HTTP API that enforces the access rules itself. The app does not call it yet — see [`neon/README.md`](neon/README.md) |
+| **Backend (Neon)** | [`neon/`](neon/) | Neon Postgres · Neon Auth · Object Storage · one Neon Function (Node 24) | The same backend on Neon: schema + seeds, and a single `fasttrack` HTTP API that enforces the access rules itself. The app uses it when built with `NEON_API_URL` — see [`neon/README.md`](neon/README.md) |
 | **Website** | [`website/`](website/) | HTML · CSS · vanilla JS | Blue-and-white download / marketing site |
 | **Product docs** | [`docs/`](docs/) | Markdown | PRD, screens, scoring rules, Gemini contracts, security, sprint plan, pitch run-sheet |
 | **Fixtures** | [`fixtures/`](fixtures/) | Text · JSON | Seed personas, sample bank-alert SMS, locked expected scores |
@@ -142,7 +142,7 @@ flowchart TB
 2. **Only the anon key ships in the app.** The service-role key and the Gemini key live exclusively in Edge Function secrets. Clients cannot write KYC results, scores or decisions.
 3. **The pitch must never depend on the network.** An offline demo repository runs the whole product on-device with seeded, cached results.
 
-### 4.2 Two runtime modes, one interface
+### 4.2 Three runtime modes, one interface
 
 The UI talks to a single `FastTrackRepository` interface. The implementation is chosen at start-up from build-time configuration:
 
@@ -152,19 +152,21 @@ flowchart LR
     S --> R{{"FastTrackRepository<br/>interface"}}
     R -->|"no SUPABASE_URL"| D["DemoRepository<br/>offline · seed personas<br/>saved to device storage"]
     R -->|"SUPABASE_URL + ANON_KEY"| SB["SupabaseRepository<br/>Auth · Postgres · Storage<br/>Edge Functions"]
+    R -->|"NEON_API_URL"| NE["NeonRepository<br/>one Neon Function:<br/>Auth · Postgres · Object Storage"]
     D --> ENG["Pure-Dart scoring engine<br/>+ narrative template"]
     SB --> EFN["Edge Functions<br/>(TS mirror of the engine)"]
+    NE --> NFN["fasttrack Neon Function<br/>(same TS engine)"]
 ```
 
-| | **Offline demo mode** | **Supabase mode** |
-|---|---|---|
-| Enabled when | No `--dart-define` values | `SUPABASE_URL` + `SUPABASE_ANON_KEY` supplied |
-| Auth | Local accounts, SHA-256 password hashes | Supabase Auth |
-| Data | Device storage (browser `localStorage` on web) — survives refresh | Postgres with RLS |
-| Files | Kept with the demo state (≤ 600 KB each) | Private Storage bucket |
-| Statement reading | Seed fixture cache; conservative offline SMS parser for other text | Cache first, then Gemini (text or multimodal PDF / image) |
-| Scoring | `app/lib/scoring/score_engine.dart` | `supabase/functions/_shared/score.ts` (tested for parity) |
-| Best for | Pitches, rehearsals, no-network rooms | Pilots with real enquiries |
+| | **Offline demo mode** | **Supabase mode** | **Neon mode** |
+|---|---|---|---|
+| Enabled when | No `--dart-define` values | `SUPABASE_URL` + `SUPABASE_ANON_KEY` supplied | `NEON_API_URL` supplied (wins over Supabase) |
+| Auth | Local accounts, SHA-256 password hashes | Supabase Auth | Neon Auth via the function; 15-minute JWTs refreshed automatically |
+| Data | Device storage (browser `localStorage` on web) — survives refresh | Postgres with RLS | Neon Postgres; access rules enforced in the function |
+| Files | Kept with the demo state (≤ 600 KB each) | Private Storage bucket | Private Object Storage bucket, 10-minute presigned links |
+| Statement reading | Seed fixture cache; conservative offline SMS parser for other text | Cache first, then Gemini (text or multimodal PDF / image) | Cache first, then Gemini (API key or Neon AI Gateway) |
+| Scoring | `app/lib/scoring/score_engine.dart` | `supabase/functions/_shared/score.ts` (tested for parity) | `neon/functions/_shared/score.ts` (same code, tested for parity) |
+| Best for | Pitches, rehearsals, no-network rooms | Pilots with real enquiries | Pilots with real enquiries |
 
 ---
 
@@ -610,6 +612,7 @@ Demo state survives a page refresh; **Reset demo** restores the three seed perso
 
 | Name | Where | Purpose |
 |---|---|---|
+| `NEON_API_URL` | `--dart-define` (app) | Switch to Neon mode: the `fasttrack` function's invocation URL |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | `--dart-define` (app) | Switch from offline demo to Supabase mode |
 | `LIVE_KYC` | `--dart-define` (app), function env | Must stay `false` in v1 |
 | `GEMINI_API_KEY` | Edge Function secret | Gemini extract + narrative |

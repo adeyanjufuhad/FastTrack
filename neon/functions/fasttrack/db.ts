@@ -10,9 +10,18 @@ pg.types.setTypeParser(1082, (v: string) => v);
 
 export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
 
+/**
+ * pg currently treats sslmode=require (what Neon's URLs carry) as verify-full
+ * and logs a deprecation warning about it on every cold start. Asking for
+ * verify-full explicitly keeps today's behaviour and silences the warning.
+ */
+export function explicitSsl(url: string): string {
+  return url.replace(/([?&]sslmode=)(?:prefer|require|verify-ca)(?=&|$)/, "$1verify-full");
+}
+
 export function createQuery(connectionString = process.env.DATABASE_URL): Query {
   if (!connectionString) throw new Error("DATABASE_URL is not set.");
-  const pool = new pg.Pool({ connectionString, max: 5, idleTimeoutMillis: 30_000 });
+  const pool = new pg.Pool({ connectionString: explicitSsl(connectionString), max: 5, idleTimeoutMillis: 30_000 });
   // An idle client dropped by scale-to-zero or the pooler must not crash the
   // isolate; the pool has already discarded it.
   pool.on("error", (e) => console.warn("pg idle client error:", e.message));
