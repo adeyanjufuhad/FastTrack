@@ -38,8 +38,17 @@ jobs:
   web:
     name: Build website + web app
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@v4
+      # Where Pages serves the site: "/FastTrack" on adeyanjufuhad.github.io,
+      # "" once a custom domain (fastrack.name.ng) is set in Settings → Pages.
+      # The Flutter builds take their base href from it, so switching domains
+      # needs no workflow edit, just a re-run.
+      - id: pages
+        uses: actions/configure-pages@v5
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -49,7 +58,7 @@ jobs:
         run: |
           flutter pub get
           flutter build web --release \
-            --base-href "/${{ github.event.repository.name }}/app/" \
+            --base-href "${{ steps.pages.outputs.base_path }}/app/" \
             --dart-define=NEON_API_URL="$NEON_API_URL"
           mv build/web ../web-live
       # The offline demo build (seed personas on the device, Reset demo,
@@ -57,7 +66,7 @@ jobs:
       - name: Build Flutter web (offline demo)
         working-directory: app
         run: |
-          flutter build web --release --base-href "/${{ github.event.repository.name }}/demo/"
+          flutter build web --release --base-href "${{ steps.pages.outputs.base_path }}/demo/"
           mv build/web ../web-demo
       - name: Assemble site
         run: |
