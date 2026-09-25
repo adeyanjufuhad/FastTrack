@@ -66,7 +66,9 @@ neon link --project-id hidden-dream-89003932      # FastTrack project, branch ma
 # 1. Schema + seeds (idempotent; already applied on main)
 DATABASE_URL="$(neon connection-string --database-name fasttrack)" npm run migrate
 
-# 2. Deploy the function (the CLI bundles it with esbuild)
+# 2. Deploy the function (the CLI bundles it with esbuild).
+#    On main this is automatic: .github/workflows/deploy-function.yml deploys
+#    on every change under neon/ (needs the NEON_API_KEY repository secret).
 neon functions deploy fasttrack --src functions/fasttrack/index.ts
 neon functions get fasttrack                      # → invocation_url
 
