@@ -139,7 +139,7 @@ void main() {
 
   test('process-application maps the API contract to ProcessFailure', () async {
     final (repo, api, _) = await _signedIn();
-    for (final (status, words) in [(409, 'confirm your identity'), (422, 'could not read'), (503, 'busy')]) {
+    for (final (status, words) in [(409, 'confirm your identity'), (422, 'could not read'), (423, 'already with a specialist'), (503, 'busy')]) {
       api.responses['POST /process-application'] = (_) => api._json({'error': 'x'}, status);
       await expectLater(
         repo.processApplication(_appId),

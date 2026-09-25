@@ -91,7 +91,7 @@ FastTrack is **the front door and the first read** — not a bank, not a credit 
 | **Contracts** | [`api/openapi.yaml`](api/openapi.yaml), [`tickets/`](tickets/) | OpenAPI 3 · Markdown | Edge Function HTTP surface; FT-00 … FT-19 issue list |
 | **CI** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions | Analyze + test the app; type-check + test the Edge Functions |
 
-**By the numbers:** 41 Dart source files (~5,600 lines) · 13 screens · 58 Dart tests + 4 Deno tests · 2 Edge Functions · 8 Postgres tables · 3 seeded personas · 1 rules file.
+**By the numbers:** 44 Dart source files (~6,550 lines) · 13 screens · 69 Dart tests + 4 Deno tests + 22 Node tests · 2 Edge Functions + 1 Neon Function · 9 Postgres tables · 3 seeded personas · 1 rules file.
 
 ---
 
@@ -624,7 +624,8 @@ Demo state survives a page refresh; **Reset demo** restores the three seed perso
 ## 16. Testing and quality
 
 ```bash
-cd app && flutter analyze && flutter test        # 58 tests
+cd app && flutter analyze && flutter test        # 69 tests
+cd neon && npm test                              # 22 tests: scoring parity, auth, API access rules
 deno test supabase/functions/_shared/            # 4 parity tests
 ```
 
@@ -704,11 +705,12 @@ flowchart LR
 |---|---|
 | Applicant flow, officer dashboard, offline demo | ✅ Built, tested, walked end to end |
 | Layout at phone / tablet / 1366×768 | ✅ Automated matrix + headless captures |
-| Android APK | ✅ [Released](https://github.com/adeyanjufuhad/FastTrack/releases/latest) (debug-signed; not yet tried on a physical device) |
+| Android APK | ✅ [v0.2.0](https://github.com/adeyanjufuhad/FastTrack/releases/latest), built against Neon (debug-signed; not yet tried on a physical device) |
 | Supabase schema, RLS, Edge Functions | 🟡 Implemented and type-checked; **not yet run against a live project** |
-| Neon backend (Postgres, Auth, Storage, function) | ✅ Deployed and tested end to end against the live function |
-| Hosted website + web app | 🟡 GitHub Pages workflow in place; goes live once Pages is switched on |
-| 90-second backup recording | ⏳ To record on the pitch laptop |
+| Neon backend (Postgres, Auth, Storage, function) | ✅ Deployed; the full applicant → officer → A10 walk passed in a browser on the hosted app |
+| Statement reader for non-persona files (Gemini) | 🟡 Needs a Gemini key or AI Gateway model access — see [`neon/README.md`](neon/README.md#turn-on-the-statement-reader-gemini). Personas work from the cache |
+| Hosted website + web app | ✅ [Website](https://adeyanjufuhad.github.io/FastTrack/) · [live app](https://adeyanjufuhad.github.io/FastTrack/app/) · [offline demo](https://adeyanjufuhad.github.io/FastTrack/demo/) on GitHub Pages |
+| 90-second backup recording | ✅ [`docs/assets/fasttrack-demo.mp4`](docs/assets/fasttrack-demo.mp4) — copy it to the pitch laptop |
 | iOS store build | ⏳ Not in v1 |
 
 ### Deliberately out of scope for v1

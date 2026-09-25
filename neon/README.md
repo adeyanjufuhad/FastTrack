@@ -79,6 +79,26 @@ curl -s -X POST $F/auth/sign-up -H 'content-type: application/json' \
 psql "$(neon connection-string --database-name fasttrack)" -f seeds/0003_staff.sql   # officer rights
 ```
 
+### Turn on the statement reader (Gemini)
+
+The three personas are scored from the extract cache and always work. Any
+other SMS or statement needs Gemini, and without it `/process-application`
+answers **503** ("Statement reader unavailable…").
+
+As of 2026-09-25 the branch's AI Gateway refuses the call with **403**,
+most likely *model requires a verified account* (the function log line
+`gemini unavailable: …` gives the exact reason). Either fix works:
+
+1. **Use a Google AI Studio key (free tier available).** Create one at
+   https://aistudio.google.com/apikey, then redeploy with it:
+   ```bash
+   neon functions deploy fasttrack --src functions/fasttrack/index.ts --env GEMINI_API_KEY=your-key
+   ```
+   The key lives only in the function's environment, never in the app.
+2. **Enable the model on Neon's AI Gateway** (verify the account / add
+   credits in the Neon Console). Nothing to redeploy: the function falls
+   back to the gateway whenever `GEMINI_API_KEY` is unset.
+
 Optional function settings, passed with `--env KEY=VALUE` on deploy:
 
 | Variable | Default | Purpose |

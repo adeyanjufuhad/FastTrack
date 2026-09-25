@@ -329,6 +329,7 @@ class NeonRepository implements FastTrackRepository {
       throw ProcessFailure(e.status, switch (e.status) {
         409 => 'We need to confirm your identity before we can show an amount.',
         422 => 'We could not read this file. Try SMS paste or a clearer PDF.',
+        423 => 'This file is already with a specialist.',
         503 => 'Our statement reader is busy. Please retry in a moment.',
         0 => e.message,
         _ => 'Something went wrong while scoring. Please retry.',
