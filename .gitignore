@@ -2,7 +2,9 @@
 .env
 .env.*
 !.env.example
-**/env.dart
+# app/lib/config/env.dart only reads --dart-define values and IS committed.
+# Put any local key file here instead:
+app/lib/config/env.local.dart
 supabase/.temp/
 supabase/.branches/
 
