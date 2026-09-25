@@ -80,7 +80,12 @@ async function generate(system: string, parts: Part[], temperature: number, asJs
   } catch (e) {
     throw new GeminiUnavailable(`Gemini unreachable: ${(e as Error).message}`);
   }
-  if (!res.ok) throw new GeminiUnavailable(`Gemini ${res.status}`);
+  if (!res.ok) {
+    // Keep the provider's reason (e.g. "model requires a verified account")
+    // for the function log; error bodies carry no credentials.
+    const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+    throw new GeminiUnavailable(`Gemini ${res.status} via ${r.model}${detail ? `: ${detail}` : ""}`);
+  }
   const body = await res.json();
   const text: string | undefined = body?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("");
   if (!text) throw new GeminiUnavailable("Empty Gemini response");
