@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/demo_repository.dart';
 import '../data/fixtures.dart';
 import '../data/repository.dart';
 import '../models/enums.dart';
@@ -36,8 +37,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Offline demo only: restore the three seed personas and sign out.
+  Future<void> resetDemo() async {
+    final r = repo;
+    if (r is! DemoRepository) return;
+    await r.resetDemo();
+    _clearSession();
+  }
+
   Future<void> signOut() async {
     await repo.signOut();
+    _clearSession();
+  }
+
+  void _clearSession() {
     _user = null;
     profile = null;
     application = null;

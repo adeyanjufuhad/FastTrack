@@ -22,7 +22,7 @@ Future<void> main() async {
     await Supabase.initialize(url: Env.supabaseUrl, publishableKey: Env.supabaseAnonKey);
     repo = SupabaseRepository(Supabase.instance.client);
   } else {
-    repo = DemoRepository();
+    repo = await DemoRepository.open();
   }
 
   final state = AppState(repo);

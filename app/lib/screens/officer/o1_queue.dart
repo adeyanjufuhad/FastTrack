@@ -7,6 +7,7 @@ import '../../state/scope.dart';
 import '../../theme/tokens.dart';
 import '../../utils/money.dart';
 import '../../widgets/chips.dart';
+import '../../widgets/reset_demo.dart';
 import 'officer_shell.dart';
 
 String submittedAgo(DateTime d) {
@@ -83,6 +84,14 @@ class _QueueScreenState extends State<QueueScreen> {
                   ],
                 ),
               ),
+              if (context.app.repo.isDemo) ...[
+                IconButton(
+                  tooltip: 'Reset demo data',
+                  onPressed: () => confirmResetDemo(context, then: '/officer/login'),
+                  icon: const Icon(Icons.restart_alt),
+                ),
+                const SizedBox(width: 4),
+              ],
               IconButton.filledTonal(tooltip: 'Refresh', onPressed: _load, icon: const Icon(Icons.refresh)),
             ],
           ),
@@ -316,11 +325,14 @@ class _QueueCard extends StatelessWidget {
                 style: t.bodySmall,
               ),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
                 children: [
                   Text(e?.amount == null ? '—' : ngn(e!.amount!),
                       style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  const Spacer(),
                   TierChip(e?.tier, dense: true),
                 ],
               ),

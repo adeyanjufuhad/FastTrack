@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'tokens.dart';
 
-ThemeData buildTheme() {
+/// [googleFonts] is false only in widget tests, which have no network.
+ThemeData buildTheme({bool googleFonts = true}) {
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
@@ -19,7 +20,7 @@ ThemeData buildTheme() {
     scaffoldBackgroundColor: FT.mist,
   );
 
-  final text = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
+  final text = (googleFonts ? GoogleFonts.plusJakartaSansTextTheme(base.textTheme) : base.textTheme).apply(
     bodyColor: FT.slate,
     displayColor: FT.navy,
   );

@@ -20,15 +20,20 @@ import 'theme/theme.dart';
 
 /// Thirteen screens. If a fourteenth appears, it is scope creep.
 class FastTrackApp extends StatefulWidget {
-  const FastTrackApp({super.key, required this.state});
+  const FastTrackApp({super.key, required this.state, this.theme, this.initialLocation = '/'});
   final AppState state;
+
+  /// Tests pass a theme built without runtime font fetching.
+  final ThemeData? theme;
+  final String initialLocation;
 
   @override
   State<FastTrackApp> createState() => _FastTrackAppState();
 }
 
 class _FastTrackAppState extends State<FastTrackApp> {
-  late final GoRouter _router = buildRouter(widget.state);
+  late final GoRouter _router = buildRouter(widget.state, initialLocation: widget.initialLocation);
+  late final ThemeData _theme = widget.theme ?? buildTheme();
 
   @override
   Widget build(BuildContext context) => AppScope(
@@ -36,7 +41,7 @@ class _FastTrackAppState extends State<FastTrackApp> {
     child: MaterialApp.router(
       title: 'FastTrack',
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
+      theme: _theme,
       routerConfig: _router,
     ),
   );
@@ -44,8 +49,8 @@ class _FastTrackAppState extends State<FastTrackApp> {
 
 const _public = {'/', '/role', '/auth', '/officer/login'};
 
-GoRouter buildRouter(AppState s) => GoRouter(
-  initialLocation: '/',
+GoRouter buildRouter(AppState s, {String initialLocation = '/'}) => GoRouter(
+  initialLocation: initialLocation,
   refreshListenable: s,
   redirect: (context, state) {
     final loc = state.matchedLocation;

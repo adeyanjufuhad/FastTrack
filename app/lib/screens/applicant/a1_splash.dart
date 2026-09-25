@@ -5,6 +5,7 @@ import '../../state/scope.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/applicant_frame.dart';
 import '../../widgets/brand.dart';
+import '../../widgets/reset_demo.dart';
 
 /// A1 — wordmark, one sentence, Get started.
 class SplashScreen extends StatelessWidget {
@@ -69,9 +70,16 @@ class SplashScreen extends StatelessWidget {
         ),
         if (app.repo.isDemo) ...[
           const SizedBox(height: 20),
-          Text(
-            'Offline demo build · seed data only',
-            style: t.bodySmall?.copyWith(color: FT.muted),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Offline demo build · seed data only', style: t.bodySmall?.copyWith(color: FT.muted)),
+              TextButton(
+                onPressed: () => confirmResetDemo(context),
+                child: const Text('Reset demo'),
+              ),
+            ],
           ),
         ],
       ],
@@ -132,6 +140,7 @@ class ResultPreview extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     return Container(
       width: 300,
+      constraints: const BoxConstraints(maxWidth: 300),
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
       decoration: BoxDecoration(
         color: FT.navy,
@@ -179,8 +188,10 @@ class ResultPreview extends StatelessWidget {
                         children: [
                           Icon(Icons.verified_user, color: FT.white, size: 16),
                           SizedBox(width: 6),
-                          Text('Elevated review',
-                              style: TextStyle(color: FT.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                          Flexible(
+                            child: Text('Elevated review',
+                                style: TextStyle(color: FT.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                          ),
                         ],
                       ),
                     ),

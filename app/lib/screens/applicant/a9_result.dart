@@ -100,10 +100,13 @@ class ResultScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(color: FT.mist, borderRadius: BorderRadius.circular(FT.radiusSm)),
-                  child: Row(
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 4,
                     children: [
                       Text('Reference', style: t.bodySmall),
-                      const Spacer(),
                       SelectableText(
                         reference(a.id),
                         style: t.titleSmall?.copyWith(color: FT.navy, fontWeight: FontWeight.w800, letterSpacing: 1),

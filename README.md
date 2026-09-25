@@ -27,7 +27,9 @@ flutter pub get
 flutter run -d chrome
 ```
 
-Walk **Adaeze**: Get started → Individual → register any email → fill details → tap the *Adaeze O.* sample identity → paste her *sample alerts* + upload any ID image → sign → result **NGN 1,240,000 · Elevated review**. Then sign out, open `/officer/login` as `officer@fasttrack.demo` / `FastTrack!demo1` and approve the file. The applicant's status page updates.
+Walk **Adaeze**: Get started → Individual → register any email → fill details → tap the *Adaeze O.* sample identity → *Use sample ID* + her *sample alerts* → sign → result **NGN 1,240,000 · Elevated review**. Then sign out, open `/officer/login` as `officer@fasttrack.demo` / `FastTrack!demo1` and approve the file. The applicant's status page updates.
+
+Demo state survives a page refresh; **Reset demo** restores the seed personas. Presenting? Use the one-page [pitch run-sheet](docs/PITCH-RUNSHEET.md).
 
 ## Full stack (Supabase + Gemini)
 

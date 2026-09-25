@@ -17,8 +17,12 @@ flutter run -d chrome \
   --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Without `SUPABASE_URL` the app uses `DemoRepository`: everything runs in
-memory with Adaeze, Ibrahim and Northshore already in the officer queue.
+Without `SUPABASE_URL` the app uses `DemoRepository`: it runs fully offline
+with Adaeze, Ibrahim and Northshore already in the officer queue. Demo state
+is saved on the device (browser localStorage on web), so a refresh mid-pitch
+loses nothing. **Reset demo** (under the splash buttons, or ↺ on the officer
+queue) restores the three seed personas. Passwords in the demo store are
+SHA-256 hashes; uploads over 600 KB keep metadata only.
 
 | Demo login | Password |
 |---|---|
@@ -34,8 +38,13 @@ one-tap "sample" chips for these.
 
 ```bash
 flutter analyze
-flutter test          # locks the Adaeze / Ibrahim / Northshore vectors
+flutter test
 ```
+
+- `score_engine_test.dart` — locks the Adaeze / Ibrahim / Northshore vectors and the rules.
+- `demo_repository_test.dart` — demo state survives a reload; reset; hashed passwords.
+- `layout_test.dart` — every screen at 360×740, 768×1024 and 1366×768 with no
+  overflow (cut-off content fails the test), plus A9 amount === O2 amount.
 
 ## Build
 

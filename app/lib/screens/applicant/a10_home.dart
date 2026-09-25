@@ -80,10 +80,13 @@ class _ApplicationHomeScreenState extends State<ApplicationHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 8,
                         children: [
                           StatusChip(a.status, applicantFacing: true),
-                          const Spacer(),
                           if (a.status != ApplicationStatus.draft)
                             Text(reference(a.id), style: t.labelLarge?.copyWith(color: FT.navy, letterSpacing: 1)),
                         ],
