@@ -7,8 +7,8 @@ the project specification (section 15); this is the operational checklist.
 
 | Use | Link | Why |
 |---|---|---|
-| **The pitch** | https://adeyanjufuhad.github.io/FastTrack/demo/ | Offline demo build: runs on the device once loaded, has **Reset demo** and the one-tap **sample ID**. Nothing a rehearsal does reaches the real queue. |
-| **A live pilot / showing the real backend** | https://adeyanjufuhad.github.io/FastTrack/app/ | Real backend on Neon. No Reset demo and no sample ID: have a photo of an ID on the device, and register a fresh email for each walk (every walk adds a file to the officer queue). |
+| **The pitch** | https://fastrack.name.ng/demo/ | Offline demo build: runs on the device once loaded, has **Reset demo** and the one-tap **sample ID**. Nothing a rehearsal does reaches the real queue. |
+| **A live pilot / showing the real backend** | https://fastrack.name.ng/app/ | Real backend on Neon. No Reset demo and no sample ID: have a photo of an ID on the device, and register a fresh email for each walk (every walk adds a file to the officer queue). |
 
 The steps below use the demo link.
 
