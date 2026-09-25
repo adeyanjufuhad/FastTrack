@@ -1,0 +1,115 @@
+name: Publish
+
+# Website + Flutter web app → GitHub Pages, on every push to main that
+# touches them. Run it by hand with a release tag (e.g. v0.2.0) to also build
+# the Android APK and attach it to a GitHub Release as fasttrack.apk, the file
+# the website's download button serves.
+#
+# Both builds talk to the Neon backend. NEON_API_URL is the fasttrack
+# function's public URL, not a secret; override it with a repository
+# variable of the same name.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/**
+      - website/**
+      - .github/workflows/publish.yml
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Also build the APK and publish it as this release (e.g. v0.2.0). Leave empty for the website only."
+        required: false
+        default: ""
+
+env:
+  NEON_API_URL: ${{ vars.NEON_API_URL || 'https://br-little-hat-b492f9op-fasttrack.compute.c-6.us-east-2.aws.neon.tech' }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  web:
+    name: Build website + web app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Build Flutter web
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build web --release \
+            --base-href "/${{ github.event.repository.name }}/app/" \
+            --dart-define=NEON_API_URL="$NEON_API_URL"
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp -r website/. _site/
+          rm -f _site/README.md
+          cp -r app/build/web _site/app
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  pages:
+    name: Deploy to GitHub Pages
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  apk:
+    name: Build APK + release
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Build APK
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build apk --release --dart-define=NEON_API_URL="$NEON_API_URL"
+          cp build/app/outputs/flutter-apk/app-release.apk ../fasttrack.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: FastTrack ${{ inputs.release_tag }}
+          files: fasttrack.apk
+          make_latest: true
+          body: |
+            Android build connected to the FastTrack backend on Neon.
+
+            - Install `fasttrack.apk` on the demo phone (allow installs from unknown sources). It is debug-signed: fine for sideloading, not for the Play Store.
+            - Applicant: register any email, or `applicant@fasttrack.demo` / `FastTrack!demo1`.
+            - Officer: `officer@fasttrack.demo` / `FastTrack!demo1`.
+            - Identity checks use the sandbox register. Results are pre-qualifications, not offers of credit.
+
+            Built from ${{ github.sha }}.

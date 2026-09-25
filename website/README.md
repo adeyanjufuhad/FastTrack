@@ -39,13 +39,29 @@ flutter build apk --release
 
 ## Host the site and the web app together
 
+`.github/workflows/publish.yml` does this on every push to `main` that touches
+`app/` or `website/`: it builds the Flutter web app against the Neon backend
+(`NEON_API_URL`), puts it under `app/` beside this site and deploys both to
+GitHub Pages at **https://adeyanjufuhad.github.io/FastTrack/**. The applicant
+flow is at `/FastTrack/app/`, and the officer dashboard at
+`/FastTrack/app/#/officer/login`. Flutter web uses hash URLs, so no server
+rewrites are needed.
+
+One-time setup: **Settings → Pages → Build and deployment → Source: GitHub
+Actions**.
+
+To publish a new APK too, run the workflow by hand (**Actions → Publish → Run
+workflow**) with a release tag such as `v0.2.0`. It builds `fasttrack.apk` against
+Neon and attaches it to that release, which becomes the latest, so the
+Android button above picks it up.
+
+To host elsewhere, build it yourself:
+
 ```bash
 cd app
-flutter build web --release --base-href /app/
+flutter build web --release --base-href /app/ \
+  --dart-define=NEON_API_URL=https://br-little-hat-b492f9op-fasttrack.compute.c-6.us-east-2.aws.neon.tech
 cp -r build/web ../website/app      # website/app/ is gitignored
 ```
 
-Deploy the `website/` folder to any static host (Vercel, Netlify, Firebase
-Hosting, GitHub Pages). The applicant flow is at `/app/` and the officer
-dashboard at `/app/#/officer/login` (Flutter web uses hash URLs by default,
-so no server rewrites are needed).
+and deploy the `website/` folder to any static host.

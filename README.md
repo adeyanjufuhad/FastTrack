@@ -645,9 +645,10 @@ deno test supabase/functions/_shared/            # 4 parity tests
 
 | Target | How |
 |---|---|
-| **Web app** | `flutter build web --release --base-href /app/` → copy `app/build/web` to `website/app/` |
+| **Website + web app (GitHub Pages)** | Automatic: `.github/workflows/publish.yml` builds the web app against Neon and deploys it with the site to https://adeyanjufuhad.github.io/FastTrack/ on every push to `main` (one-time: Settings → Pages → Source: GitHub Actions) |
+| **Web app (other hosts)** | `flutter build web --release --base-href /app/ --dart-define=NEON_API_URL=…` → copy `app/build/web` to `website/app/` |
 | **Website + web app** | Deploy the `website/` folder to any static host (GitHub Pages, Vercel, Netlify, Firebase Hosting). Applicant flow at `/app/`, officer at `/app/#/officer/login` |
-| **Android** | `flutter build apk --release` → attach as `fasttrack.apk` to a GitHub Release ([v0.1.0](https://github.com/adeyanjufuhad/FastTrack/releases/tag/v0.1.0) is live). Currently debug-signed: fine for sideloading onto demo phones, not for the Play Store |
+| **Android** | Actions → **Publish** → Run workflow with a tag (e.g. `v0.2.0`): builds `fasttrack.apk` against Neon and attaches it to that release. By hand: `flutter build apk --release --dart-define=NEON_API_URL=…`. Debug-signed: fine for sideloading onto demo phones, not for the Play Store |
 | **Backend** | Supabase migrations + `supabase functions deploy` (see §15.3) |
 | **Backend (Neon)** | `npm run migrate` + `neon functions deploy fasttrack --src functions/fasttrack/index.ts`, from `neon/` (see [`neon/README.md`](neon/README.md)) |
 
@@ -705,7 +706,8 @@ flowchart LR
 | Layout at phone / tablet / 1366×768 | ✅ Automated matrix + headless captures |
 | Android APK | ✅ [Released](https://github.com/adeyanjufuhad/FastTrack/releases/latest) (debug-signed; not yet tried on a physical device) |
 | Supabase schema, RLS, Edge Functions | 🟡 Implemented and type-checked; **not yet run against a live project** |
-| Hosted website + web app | ⏳ Ready to deploy; host not chosen yet |
+| Neon backend (Postgres, Auth, Storage, function) | ✅ Deployed and tested end to end against the live function |
+| Hosted website + web app | 🟡 GitHub Pages workflow in place; goes live once Pages is switched on |
 | 90-second backup recording | ⏳ To record on the pitch laptop |
 | iOS store build | ⏳ Not in v1 |
 
@@ -726,6 +728,7 @@ FastTrack/
 ├── README.md                  ← you are here
 ├── .env.example               # shape of local config (never commit .env)
 ├── .github/workflows/ci.yml   # analyze + test app, check + test Edge and Neon functions
+├── .github/workflows/publish.yml # web app + site → GitHub Pages; APK → GitHub Release
 ├── api/openapi.yaml           # Edge Function HTTP contract
 ├── app/                       # Flutter app (applicant + officer)
 │   ├── lib/                   #   see §6.2
