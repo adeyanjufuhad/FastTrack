@@ -169,9 +169,7 @@ code { font-size: .92em; background: var(--sky); color: var(--navy); padding: .1
 .float-chip svg { width: 16px; height: 16px; fill: none; stroke: var(--ok); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .float-chip--a { left: 2%; bottom: 14%; }
 .float-chip--b { right: 0; top: 6%; animation-delay: -3s; }
-.pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 0 rgba(43,118,229,.5); animation: pulse 2s infinite; }
 @keyframes float { 50% { transform: translateY(-8px); } }
-@keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(43,118,229,0); } 100% { box-shadow: 0 0 0 0 rgba(43,118,229,0); } }
 
 @media (max-width: 900px) {
   .hero__grid { grid-template-columns: 1fr; }
