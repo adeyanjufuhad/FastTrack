@@ -13,31 +13,43 @@ import type { Extract } from "./score.ts";
 
 const env = (k: string) => process.env[k] || undefined;
 
-function route(): { url: string; headers: Record<string, string>; model: string } | null {
+// Google retires models for new keys (gemini-2.5-flash was, in 2026) and
+// its flash models regularly answer 503 "high demand". Each call walks this
+// list until one model answers: GEMINI_MODEL first, then the fallbacks.
+const DIRECT_MODELS = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash"];
+const GATEWAY_MODELS = ["gemini-3-flash", "gemini-3-5-flash-lite"];
+
+interface Route {
+  models: string[];
+  url: (model: string) => string;
+  headers: Record<string, string>;
+}
+
+function models(defaults: string[]): string[] {
+  const fallbacks = env("GEMINI_FALLBACK_MODELS")?.split(",").map((m) => m.trim()).filter(Boolean) ?? defaults;
+  return [...new Set([env("GEMINI_MODEL") ?? defaults[0], ...fallbacks])];
+}
+
+function route(): Route | null {
   const key = env("GEMINI_API_KEY");
   if (key) {
-    const model = env("GEMINI_MODEL") ?? "gemini-2.5-flash";
     return {
-      model,
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      models: models(DIRECT_MODELS),
+      url: (m) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
       headers: { "x-goog-api-key": key },
     };
   }
   const token = env("NEON_AI_GATEWAY_TOKEN");
   const base = env("NEON_AI_GATEWAY_BASE_URL");
   if (token && base) {
-    const model = env("GEMINI_MODEL") ?? "gemini-3-flash";
     return {
-      model,
-      url: `${base.replace(/\/$/, "")}/gemini/v1beta/models/${model}:generateContent`,
+      models: models(GATEWAY_MODELS),
+      url: (m) => `${base.replace(/\/$/, "")}/gemini/v1beta/models/${m}:generateContent`,
       headers: { Authorization: `Bearer ${token}` },
     };
   }
   return null;
 }
-
-/** Model label stored in eligibility_results.model_version. */
-export const modelName = () => route()?.model ?? "none";
 
 export class GeminiUnavailable extends Error {}
 
@@ -62,34 +74,51 @@ End with exactly one recommended next action.`;
 
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
 
-async function generate(system: string, parts: Part[], temperature: number, asJson: boolean) {
+/** A bad request or bad credentials fail the same way on every model. */
+const tryNextModel = (status: number) => status !== 400 && status !== 401;
+
+async function generate(
+  system: string,
+  parts: Part[],
+  temperature: number,
+  asJson: boolean,
+): Promise<{ text: string; model: string }> {
   const r = route();
   if (!r) throw new GeminiUnavailable("No GEMINI_API_KEY and no Neon AI Gateway on this branch");
-  let res: Response;
-  try {
-    res = await fetch(r.url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...r.headers },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts }],
-        generationConfig: { temperature, ...(asJson ? { responseMimeType: "application/json" } : {}) },
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
-  } catch (e) {
-    throw new GeminiUnavailable(`Gemini unreachable: ${(e as Error).message}`);
+  const failures: string[] = [];
+  for (const model of r.models) {
+    let res: Response;
+    try {
+      res = await fetch(r.url(model), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...r.headers },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts }],
+          generationConfig: { temperature, ...(asJson ? { responseMimeType: "application/json" } : {}) },
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (e) {
+      failures.push(`${model}: unreachable (${(e as Error).message})`);
+      continue;
+    }
+    if (!res.ok) {
+      // Keep the provider's reason (e.g. "high demand", "no longer available")
+      // for the function log; error bodies carry no credentials.
+      const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
+      failures.push(`${model}: ${res.status}${detail ? ` ${detail}` : ""}`);
+      if (tryNextModel(res.status)) continue;
+      break;
+    }
+    const body = await res.json();
+    const text: string | undefined = body?.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p.text ?? "")
+      .join("");
+    if (text) return { text, model };
+    failures.push(`${model}: empty response`);
   }
-  if (!res.ok) {
-    // Keep the provider's reason (e.g. "model requires a verified account")
-    // for the function log; error bodies carry no credentials.
-    const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
-    throw new GeminiUnavailable(`Gemini ${res.status} via ${r.model}${detail ? `: ${detail}` : ""}`);
-  }
-  const body = await res.json();
-  const text: string | undefined = body?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("");
-  if (!text) throw new GeminiUnavailable("Empty Gemini response");
-  return text;
+  throw new GeminiUnavailable(`Gemini failed: ${failures.join(" | ")}`);
 }
 
 const REGULARITY = ["stable", "lumpy", "seasonal", "insufficient_history"];
@@ -134,21 +163,23 @@ export function validateExtract(raw: unknown): Extract | null {
 /** Extract with one "Return JSON only." retry. Null = unreadable. */
 export async function extractWithGemini(
   input: { role: string; tenor: number; source: "sms" | "statement"; text?: string; file?: { mime: string; base64: string } },
-): Promise<{ extract: Extract | null; raw: string }> {
+): Promise<{ extract: Extract | null; raw: string; model: string }> {
   const header = `role=${input.role}\ntenor_months=${input.tenor}\nsource=${input.source}\n\nTEXT:\n`;
   const parts: Part[] = input.file
     ? [{ text: header + "(see attached statement)" }, { inline_data: { mime_type: input.file.mime, data: input.file.base64 } }]
     : [{ text: header + (input.text ?? "") }];
 
-  let raw = await generate(EXTRACT_SYSTEM, parts, 0.2, true);
+  let { text: raw, model } = await generate(EXTRACT_SYSTEM, parts, 0.2, true);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const parsed = validateExtract(JSON.parse(raw.replace(/^```(?:json)?|```$/g, "").trim()));
-      if (parsed) return { extract: parsed, raw };
+      if (parsed) return { extract: parsed, raw, model };
     } catch { /* fall through to retry */ }
-    if (attempt === 0) raw = await generate(EXTRACT_SYSTEM, [...parts, { text: "Return JSON only." }], 0.2, true);
+    if (attempt === 0) {
+      ({ text: raw, model } = await generate(EXTRACT_SYSTEM, [...parts, { text: "Return JSON only." }], 0.2, true));
+    }
   }
-  return { extract: null, raw };
+  return { extract: null, raw, model };
 }
 
 /** Narrative; returns null if the text breaks the brief (length or amounts). */
@@ -163,7 +194,7 @@ export async function narrativeWithGemini(
     [{ text: `AMOUNT_PREQUALIFIED=${amount}\nTIER=${tier}\nWARNINGS=${warnings.join(",")}\nEXTRACT=${JSON.stringify(extract)}` }],
     0.5,
     false,
-  )).trim();
+  )).text.trim();
   const words = text.split(/\s+/).length;
   if (words < 60 || words > 170) return null;
   // Any naira figure ≥ 100k that is not the computed amount or an extract

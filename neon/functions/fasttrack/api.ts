@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import { type Claims, AuthError, type NeonAuth } from "./auth.ts";
 import type { Query } from "./db.ts";
 import { ALLOWED_MIME, MAX_BYTES, objectKey, type Storage, StorageError } from "./storage.ts";
-import { extractWithGemini, GeminiUnavailable, modelName, narrativeWithGemini, validateExtract } from "../_shared/gemini.ts";
+import { extractWithGemini, GeminiUnavailable, narrativeWithGemini, validateExtract } from "../_shared/gemini.ts";
 import { type Extract, type KycResult, score, templateNarrative } from "../_shared/score.ts";
 
 export interface Deps {
@@ -278,7 +278,7 @@ export function createHandler(deps: Deps) {
           const r = await extractWithGemini({ role: applicant.role, tenor, source: "sms", text: sms });
           extract = r.extract;
           rawOutput = r.raw;
-          modelVersion = modelName();
+          modelVersion = r.model;
         }
       } else if (!extract) {
         const doc = await one<{ storage_key: string; mime: string | null; bytes: number | null }>(
@@ -307,7 +307,7 @@ export function createHandler(deps: Deps) {
           });
           extract = r.extract;
           rawOutput = r.raw;
-          modelVersion = modelName();
+          modelVersion = r.model;
         }
       }
     } catch (e) {

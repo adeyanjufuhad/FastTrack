@@ -617,6 +617,7 @@ Demo state survives a page refresh; **Reset demo** restores the three seed perso
 | `LIVE_KYC` | `--dart-define` (app), function env | Must stay `false` in v1 |
 | `GEMINI_API_KEY` | Edge Function secret | Gemini extract + narrative |
 | `GEMINI_MODEL` | Edge Function env (optional) | Defaults to `gemini-2.5-flash` |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS` | Neon Function env | Statement reader for the Neon backend — see [`neon/README.md`](neon/README.md#the-statement-reader-gemini) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Provided to Edge Functions by Supabase | Never in the app |
 
 ---
@@ -708,7 +709,7 @@ flowchart LR
 | Android APK | ✅ [v0.2.0](https://github.com/adeyanjufuhad/FastTrack/releases/latest), built against Neon (debug-signed; not yet tried on a physical device) |
 | Supabase schema, RLS, Edge Functions | 🟡 Implemented and type-checked; **not yet run against a live project** |
 | Neon backend (Postgres, Auth, Storage, function) | ✅ Deployed; the full applicant → officer → A10 walk passed in a browser on the hosted app |
-| Statement reader for non-persona files (Gemini) | 🟡 Needs a Gemini key or AI Gateway model access — see [`neon/README.md`](neon/README.md#turn-on-the-statement-reader-gemini). Personas work from the cache |
+| Statement reader for non-persona files (Gemini) | ✅ Live with a Google AI Studio key; falls back across models when one is busy — see [`neon/README.md`](neon/README.md#the-statement-reader-gemini) |
 | Hosted website + web app | ✅ [Website](https://adeyanjufuhad.github.io/FastTrack/) · [live app](https://adeyanjufuhad.github.io/FastTrack/app/) · [offline demo](https://adeyanjufuhad.github.io/FastTrack/demo/) on GitHub Pages |
 | 90-second backup recording | ✅ [`docs/assets/fasttrack-demo.mp4`](docs/assets/fasttrack-demo.mp4) — copy it to the pitch laptop |
 | iOS store build | ⏳ Not in v1 |
