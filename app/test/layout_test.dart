@@ -104,6 +104,9 @@ void main() {
     expect(find.text('Up to NGN 1,240,000'), findsOneWidget);
     expect(find.textContaining('Demo mode — sandbox verification'), findsOneWidget);
     expect(find.textContaining('not an offer of credit'), findsOneWidget);
+    // Visible without scrolling on the HDMI screen (definition of done).
+    expect(tester.getRect(find.textContaining('Demo mode — sandbox verification')).bottom, lessThan(768 - 80));
+    expect(tester.getRect(find.textContaining('not an offer of credit')).bottom, lessThan(768 - 80));
 
     await tester.runAsync(() async {
       await state.signOut();

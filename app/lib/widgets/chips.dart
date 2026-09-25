@@ -127,7 +127,7 @@ class StatusChip extends StatelessWidget {
       ApplicationStatus.declined => (FT.danger, FT.dangerBg, Icons.cancel_outlined),
       ApplicationStatus.moreInfo => (FT.amber, FT.amberBg, Icons.help_outline),
       ApplicationStatus.inReview => (FT.blueDeep, FT.sky, Icons.visibility_outlined),
-      ApplicationStatus.scored => (FT.navy, FT.sky, Icons.fiber_new_outlined),
+      ApplicationStatus.scored => (FT.navy, FT.sky, Icons.fiber_manual_record),
       _ => (FT.muted, FT.mist, Icons.edit_note),
     };
     final label = applicantFacing && status == ApplicationStatus.scored ? 'In queue' : status.label;

@@ -105,7 +105,7 @@ class _QueueScreenState extends State<QueueScreen> {
                 runSpacing: 14,
                 children: [
                   _Stat(w, 'In queue', '${rows?.length ?? '–'}', Icons.inbox_outlined),
-                  _Stat(w, 'New', '${count({ApplicationStatus.scored})}', Icons.fiber_new_outlined),
+                  _Stat(w, 'New', '${count({ApplicationStatus.scored})}', Icons.mark_email_unread_outlined),
                   _Stat(w, 'In review / more info', '${count({ApplicationStatus.inReview, ApplicationStatus.moreInfo})}', Icons.visibility_outlined),
                   _Stat(w, 'Decided', '${count({ApplicationStatus.approved, ApplicationStatus.declined})}', Icons.task_alt),
                 ],

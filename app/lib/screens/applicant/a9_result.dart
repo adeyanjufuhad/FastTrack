@@ -38,15 +38,8 @@ class ResultScreen extends StatelessWidget {
       ScoreResult(amount: e.amount, tier: e.tier ?? Tier.high, warnings: e.warnings, blocked: blocked),
     );
 
-    return ApplicantFrame(
-      bottom: FilledButton(
-        onPressed: () => context.go('/home'),
-        child: const Text('Go to my application'),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SectionCard(
+    final wide = context.isWide;
+    final card = SectionCard(
             padding: EdgeInsets.all(fluid(context, 20, 28)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,6 +91,7 @@ class ResultScreen extends StatelessWidget {
                   ),
                 const SizedBox(height: 10),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(color: FT.mist, borderRadius: BorderRadius.circular(FT.radiusSm)),
                   child: Wrap(
@@ -116,13 +110,41 @@ class ResultScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          const SandboxChip(),
-          const SizedBox(height: 12),
-          const DisclaimerCard(applicantDisclaimer),
-        ],
+          );
+
+    // The amber chip and disclaimer must be visible without scrolling on a
+    // 1366×768 pitch screen: beside the result when wide, above it on phones.
+    return ApplicantFrame(
+      maxWidth: wide ? 980 : 560,
+      bottom: FilledButton(
+        onPressed: () => context.go('/home'),
+        child: const Text('Go to my application'),
       ),
+      child: wide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: card),
+                const SizedBox(width: 20),
+                const Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [SandboxChip(), SizedBox(height: 12), DisclaimerCard(applicantDisclaimer)],
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SandboxChip(),
+                const SizedBox(height: 12),
+                card,
+                const SizedBox(height: 12),
+                const DisclaimerCard(applicantDisclaimer),
+              ],
+            ),
     );
   }
 }
