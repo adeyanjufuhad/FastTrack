@@ -1,11 +1,12 @@
 name: Publish
 
 # Website + Flutter web app → GitHub Pages, on every push to main that
-# touches them. Run it by hand with a release tag (e.g. v0.2.0) to also build
+# touches them: the live app (on Neon) at /app/ and the offline demo build
+# at /demo/. Run it by hand with a release tag (e.g. v0.2.0) to also build
 # the Android APK and attach it to a GitHub Release as fasttrack.apk, the file
 # the website's download button serves.
 #
-# Both builds talk to the Neon backend. NEON_API_URL is the fasttrack
+# The live web build and the APK talk to the Neon backend. NEON_API_URL is the fasttrack
 # function's public URL, not a secret; override it with a repository
 # variable of the same name.
 
@@ -43,19 +44,28 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Build Flutter web
+      - name: Build Flutter web (live, on Neon)
         working-directory: app
         run: |
           flutter pub get
           flutter build web --release \
             --base-href "/${{ github.event.repository.name }}/app/" \
             --dart-define=NEON_API_URL="$NEON_API_URL"
+          mv build/web ../web-live
+      # The offline demo build (seed personas on the device, Reset demo,
+      # sample ID) for pitches, so a room without network can't stop them.
+      - name: Build Flutter web (offline demo)
+        working-directory: app
+        run: |
+          flutter build web --release --base-href "/${{ github.event.repository.name }}/demo/"
+          mv build/web ../web-demo
       - name: Assemble site
         run: |
           mkdir -p _site
           cp -r website/. _site/
           rm -f _site/README.md
-          cp -r app/build/web _site/app
+          cp -r web-live _site/app
+          cp -r web-demo _site/demo
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
