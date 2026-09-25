@@ -42,13 +42,17 @@ flutter build apk --release
 `.github/workflows/publish.yml` does this on every push to `main` that touches
 `app/` or `website/`: it builds the Flutter web app against the Neon backend
 (`NEON_API_URL`), puts it under `app/` beside this site and deploys both to
-GitHub Pages at **https://adeyanjufuhad.github.io/FastTrack/**. The applicant
-flow is at `/FastTrack/app/`, and the officer dashboard at
-`/FastTrack/app/#/officer/login`. Flutter web uses hash URLs, so no server
-rewrites are needed.
+GitHub Pages at **https://fastrack.name.ng/**. The applicant flow is at
+`/app/`, the officer dashboard at `/app/#/officer/login`, and the offline
+demo at `/demo/`. Flutter web uses hash URLs, so no server rewrites are
+needed. The old `adeyanjufuhad.github.io/FastTrack/` address redirects here.
 
 One-time setup: **Settings → Pages → Build and deployment → Source: GitHub
-Actions**.
+Actions**, and **Custom domain: fastrack.name.ng** (DNS at Truehost: four A
+records for `@` to 185.199.108–111.153, and `www` CNAME to
+`adeyanjufuhad.github.io`). The workflow reads the base path from the Pages
+config, so the Flutter builds follow whichever domain is set; re-run it after
+changing the domain.
 
 To publish a new APK too, run the workflow by hand (**Actions → Publish → Run
 workflow**) with a release tag such as `v0.2.0`. It builds `fasttrack.apk` against

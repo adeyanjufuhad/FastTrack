@@ -12,7 +12,7 @@
 
 Verified 2026-09-25 on the hosted build (GitHub Pages + Neon) unless noted.
 
-- [x] Hosted Flutter web link works without a local machine: https://adeyanjufuhad.github.io/FastTrack/app/ (live) and `/demo/` (offline)
+- [x] Hosted Flutter web link works without a local machine: https://fastrack.name.ng/app/ (live) and `/demo/` (offline)
 - [x] Adaeze, Ibrahim, Northshore appear in the officer queue after seed: NGN 1,240,000 · 410,000 · 3,780,000
 - [x] Adaeze walk A2→A9 < 5 minutes: about 80 s scripted in a browser
 - [x] A9 amount === O2 amount: both NGN 1,240,000
