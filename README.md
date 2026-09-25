@@ -652,7 +652,7 @@ deno test supabase/functions/_shared/            # 4 parity tests
 | **Website + web app** | Deploy the `website/` folder to any static host (GitHub Pages, Vercel, Netlify, Firebase Hosting). Applicant flow at `/app/`, officer at `/app/#/officer/login` |
 | **Android** | Actions → **Publish** → Run workflow with a tag (e.g. `v0.2.0`): builds `fasttrack.apk` against Neon and attaches it to that release. By hand: `flutter build apk --release --dart-define=NEON_API_URL=…`. Debug-signed: fine for sideloading onto demo phones, not for the Play Store |
 | **Backend** | Supabase migrations + `supabase functions deploy` (see §15.3) |
-| **Backend (Neon)** | `npm run migrate` + `neon functions deploy fasttrack --src functions/fasttrack/index.ts`, from `neon/` (see [`neon/README.md`](neon/README.md)) |
+| **Backend (Neon)** | Automatic: `.github/workflows/deploy-function.yml` tests and deploys the function on every change under `neon/` on `main` (secret `NEON_API_KEY`). By hand: `neon functions deploy fasttrack --src functions/fasttrack/index.ts` from `neon/`. Schema: `npm run migrate` |
 
 ---
 
@@ -732,6 +732,7 @@ FastTrack/
 ├── .env.example               # shape of local config (never commit .env)
 ├── .github/workflows/ci.yml   # analyze + test app, check + test Edge and Neon functions
 ├── .github/workflows/publish.yml # web app + site → GitHub Pages; APK → GitHub Release
+├── .github/workflows/deploy-function.yml # test + deploy the Neon function
 ├── api/openapi.yaml           # Edge Function HTTP contract
 ├── app/                       # Flutter app (applicant + officer)
 │   ├── lib/                   #   see §6.2
