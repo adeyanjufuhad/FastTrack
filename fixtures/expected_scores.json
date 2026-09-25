@@ -1,0 +1,23 @@
+{
+  "adaeze": {
+    "monthly_income_est": 420000,
+    "tenor_months": 12,
+    "amount_prequalified": 1240000,
+    "tier": "medium",
+    "notes": "Stable salary, one Carbon debit floors tier at medium. See docs/scoring-engine.md."
+  },
+  "ibrahim": {
+    "monthly_income_est": 280000,
+    "tenor_months": 12,
+    "amount_prequalified": 410000,
+    "tier": "high",
+    "notes": "Lumpy + reversals + two lenders."
+  },
+  "northshore": {
+    "monthly_income_est": 1800000,
+    "tenor_months": 12,
+    "amount_prequalified": 3780000,
+    "tier": "medium",
+    "notes": "Lumpy business inflows, no lenders: 1.8m x 3 = 5.4m (under 10.8m cap) x 0.70. Locked after first implementation."
+  }
+}

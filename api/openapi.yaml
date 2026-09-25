@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: FastTrack Edge Functions
+  version: 1.0.0
+  description: Demo MVP. Sandbox KYC. JWT from Supabase Auth required.
+servers:
+  - url: https://YOUR_PROJECT.supabase.co/functions/v1
+paths:
+  /kyc-check:
+    post:
+      summary: Sandbox BVN/NIN check
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bvn: { type: string, minLength: 11, maxLength: 11 }
+                nin: { type: string, minLength: 11, maxLength: 11 }
+                legal_name: { type: string }
+      responses:
+        "200":
+          description: Sandbox result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    enum: [sandbox_pass, sandbox_fail, mismatch]
+                  matched_name: { type: string }
+                  mode: { type: string, enum: [sandbox] }
+  /process-application:
+    post:
+      summary: Extract + score + narrative
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [application_id]
+              properties:
+                application_id: { type: string, format: uuid }
+                fixture_key:
+                  type: string
+                  description: extract_cache.input_hash — use in demos
+      responses:
+        "200":
+          description: Scored
+        "409":
+          description: KYC mismatch, no amount
+        "422":
+          description: Unreadable statement
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

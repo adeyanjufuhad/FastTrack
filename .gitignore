@@ -1,0 +1,21 @@
+# Secrets — never commit real keys (docs/security.md)
+.env
+.env.*
+!.env.example
+**/env.dart
+supabase/.temp/
+supabase/.branches/
+
+# The Flutter web build copied beside the site for hosting
+website/app/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+
+# Node / Deno caches
+node_modules/
+.deno/
