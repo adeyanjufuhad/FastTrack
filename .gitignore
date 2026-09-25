@@ -7,6 +7,9 @@
 app/lib/config/env.local.dart
 supabase/.temp/
 supabase/.branches/
+# Neon: function bundle and CLI link file
+neon/dist/
+.neon
 
 # The Flutter web build copied beside the site for hosting
 website/app/
